@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¿Qué anime empiezo?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>¿Qué anime empiezo?</h1>
+    <p class="count" id="count">Cargá tu lista de MyAnimeList para armar la ruleta.</p>
+  </header>
+
+  <form class="user-form" id="userForm">
+    <label for="username">Usuario de MyAnimeList</label>
+    <div class="row">
+      <input id="username" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="tu_usuario" required>
+      <button class="btn sm" id="load" type="submit">Cargar lista</button>
+    </div>
+    <p class="error" id="error" role="alert" hidden></p>
+    <p class="msg" id="loadMsg" aria-live="polite"></p>
+  </form>
+
+  <main class="app">
+    <div class="wheel-wrap">
+      <div class="pointer" aria-hidden="true"></div>
+      <canvas id="wheel" role="img" aria-label="Ruleta con animes pendientes"></canvas>
+    </div>
+
+    <div class="panel">
+      <section class="result" id="result" aria-live="polite">
+        <p class="placeholder">Todavía no cargaste ninguna lista.</p>
+      </section>
+
+      <div class="actions">
+        <button class="btn" id="spin" type="button" disabled>Girar</button>
+        <button class="btn ghost" id="started" type="button" hidden>Ya lo empecé</button>
+        <button class="btn ghost" id="redo" type="button" hidden>Borrar y girar de nuevo</button>
+      </div>
+
+      <fieldset>
+        <legend>Qué incluir</legend>
+        <div class="chips" id="modes"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Tipos</legend>
+        <div class="chips" id="chips"></div>
+      </fieldset>
+
+      <div class="history" id="history" hidden>
+        <div class="hhead">
+          <h3>Tiradas anteriores</h3>
+          <button class="link" id="clearHistory" type="button">Limpiar lista</button>
+        </div>
+        <ol id="historyList"></ol>
+      </div>
+
+      <button class="link" id="restore" type="button" hidden></button>
+    </div>
+  </main>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/ruleta.js"></script>
+</body>
+</html>
