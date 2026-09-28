@@ -14,11 +14,11 @@
  */
 const MalApi = (() => {
   const CONFIG = {
-    // Client ID de tu app en https://myanimelist.net/apiconfig
-    CLIENT_ID: "ddf646fe6465ef4252acfdd321619fd6",
-    // Si MyAnimeList bloquea las llamadas desde el navegador (CORS),
-    // apuntá esto a tu propio proxy que reenvíe a https://api.myanimelist.net/v2
-    BASE_URL: "https://api.myanimelist.net/v2",
+    // MyAnimeList no permite llamadas directas desde el navegador (CORS),
+    // así que BASE_URL apunta a tu proxy (ver proxy-cloudflare/worker.js),
+    // que reenvía a https://api.myanimelist.net/v2 agregando el Client ID.
+    // Reemplazá esto por la URL que te dio Cloudflare al desplegar el worker.
+    BASE_URL: "https://mal-proxy.chiito53452.workers.dev/",
     // Máximo permitido por la API para este endpoint: 1000
     PAGE_SIZE: 1000,
   };
@@ -48,7 +48,6 @@ const MalApi = (() => {
   }
 
   function configure(opts = {}) {
-    if (opts.clientId) CONFIG.CLIENT_ID = opts.clientId;
     if (opts.baseUrl) CONFIG.BASE_URL = opts.baseUrl;
     if (opts.pageSize) CONFIG.PAGE_SIZE = opts.pageSize;
   }
@@ -64,17 +63,17 @@ const MalApi = (() => {
   }
 
   async function request(path, params) {
-    if (!CONFIG.CLIENT_ID || CONFIG.CLIENT_ID === "TU_CLIENT_ID") {
-      throw new MalError("config", "Falta configurar el Client ID.");
+    if (!CONFIG.BASE_URL || CONFIG.BASE_URL.includes("TU-USUARIO")) {
+      throw new MalError("config", "Falta configurar la URL del proxy en BASE_URL.");
     }
     const url = new URL(CONFIG.BASE_URL.replace(/\/+$/, "") + path);
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
     let res;
     try {
-      res = await fetch(url.toString(), { headers: { "X-MAL-CLIENT-ID": CONFIG.CLIENT_ID } });
+      res = await fetch(url.toString());
     } catch (err) {
-      throw new MalError("network", "No se pudo conectar con MyAnimeList.");
+      throw new MalError("network", "No se pudo conectar con el proxy.");
     }
     if (!res.ok) throw errorForStatus(res.status);
     return res.json();
