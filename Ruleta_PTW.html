@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>¿Qué anime empiezo?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+    :root{
+      box-sizing:border-box;
+      padding-top:env(safe-area-inset-top,0px);
+      padding-bottom:env(safe-area-inset-bottom,0px);
+      --bg:#F6F3FB; --surface:#FFFFFF; --ink:#1A1526; --muted:#5E5673; --line:#D9D2E8;
+      --accent:#3B3FD0; --on-accent:#FFFFFF; --rim:#1A1526; --hub:#FFFFFF; --lamp:#FFC95C;
+      --font-display:"Dela Gothic One","Arial Black","Helvetica Neue",Arial,sans-serif;
+      --font-body:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Segoe UI",Roboto,Arial,sans-serif;
+    }
+    @media (prefers-color-scheme: dark){
+      :root:not([data-theme="light"]){
+        --bg:#14121F; --surface:#201C33; --ink:#F2EEF8; --muted:#A79FC0; --line:#382F55;
+        --accent:#FFC95C; --on-accent:#1A1526; --rim:#0C0A14; --hub:#201C33; --lamp:#FFC95C;
+      }
+    }
+    :root[data-theme="dark"]{
+      --bg:#14121F; --surface:#201C33; --ink:#F2EEF8; --muted:#A79FC0; --line:#382F55;
+      --accent:#FFC95C; --on-accent:#1A1526; --rim:#0C0A14; --hub:#201C33; --lamp:#FFC95C;
+    }
+    html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
+    *,*::before,*::after{box-sizing:inherit}
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family:var(--font-body); font-size:16px; line-height:1.5;
+      min-height:100vh;
+    }
+    .page{max-width:1040px;margin:0 auto;padding:28px 20px 48px}
+    header{margin-bottom:28px}
+    h1{font-family:var(--font-display);font-weight:400;font-size:clamp(1.9rem,4.5vw,3rem);line-height:1.1;margin:0 0 6px;letter-spacing:-.01em}
+    .count{margin:0;color:var(--muted)}
+    .app{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:36px;align-items:start}
+    @media (max-width:820px){.app{grid-template-columns:minmax(0,1fr);gap:24px}}
+
+    .wheel-wrap{position:relative;width:100%;max-width:480px;margin:0 auto;aspect-ratio:1/1}
+    .wheel-wrap canvas{width:100%;height:100%;display:block}
+    .pointer{
+      position:absolute;left:50%;top:-4px;transform:translateX(-50%);z-index:2;
+      width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;
+      border-top:30px solid var(--accent);
+      filter:drop-shadow(0 2px 0 var(--rim));
+    }
+
+    .panel{display:flex;flex-direction:column;gap:22px}
+    .result{
+      background:var(--surface);border:2px solid var(--line);border-radius:14px;
+      padding:22px 22px 20px;min-height:190px;display:flex;flex-direction:column;justify-content:center;gap:14px;
+    }
+    .result .placeholder{margin:0;color:var(--muted)}
+    .result h2{
+      font-family:var(--font-display);font-weight:400;margin:0;
+      font-size:clamp(1.4rem,3.4vw,2.1rem);line-height:1.2;overflow-wrap:anywhere;
+    }
+    .meta{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+    .badge{
+      font-weight:700;font-size:.95rem;padding:3px 12px;border-radius:999px;
+      background:var(--accent);color:var(--on-accent);
+    }
+    .eps{color:var(--muted)}
+    .hold{margin:0;padding:10px 12px;border-left:4px solid var(--accent);background:var(--bg);border-radius:0 8px 8px 0}
+    .result.pop h2,.result.pop .meta{animation:reveal .35s ease-out both}
+    @keyframes reveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+    .actions{display:flex;flex-wrap:wrap;gap:10px}
+    button{font:inherit;cursor:pointer}
+    .btn{
+      border:2px solid var(--accent);background:var(--accent);color:var(--on-accent);
+      font-weight:700;font-size:1.1rem;padding:12px 30px;border-radius:12px;
+    }
+    .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line);font-size:1rem;padding:12px 18px;font-weight:500}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .btn:not(:disabled):hover{filter:brightness(1.07)}
+    :focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+    fieldset{border:0;margin:0;padding:0}
+    legend{padding:0;margin-bottom:8px;font-weight:700}
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{
+      border:2px solid var(--line);background:transparent;color:var(--muted);
+      padding:5px 12px;border-radius:999px;font-size:.92rem;
+    }
+    .chip[aria-pressed="true"]{border-color:var(--accent);color:var(--ink);background:var(--surface);font-weight:700}
+    .chip .n{opacity:.7;font-weight:400;margin-left:4px}
+
+    .history h3{margin:0;font-size:1rem}
+    .hhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
+    .history ol{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+    .history li{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:.93rem;border-bottom:1px solid var(--line);padding-bottom:4px}
+    .history li span:first-child{overflow-wrap:anywhere}
+    .history li span:last-child{white-space:nowrap}
+    .link{background:none;border:0;color:var(--muted);text-decoration:underline;padding:0;font-size:.93rem;text-align:left}
+    .link:hover{color:var(--ink)}
+    .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+    @media (prefers-reduced-motion: reduce){.result.pop h2,.result.pop .meta{animation:none}}
+    </style>
+  </head>
+  <body>
+  <div class="page">
+    <header>
+      <h1>¿Qué anime empiezo?</h1>
+      <p class="count" id="count"></p>
+    </header>
+
+    <main class="app">
+      <div class="wheel-wrap">
+        <div class="pointer" aria-hidden="true"></div>
+        <canvas id="wheel" role="img" aria-label="Ruleta con animes pendientes"></canvas>
+      </div>
+
+      <div class="panel">
+        <section class="result" id="result" aria-live="polite">
+          <p class="placeholder">Todavía no giraste. Toca Girar y la ruleta elige por ti.</p>
+        </section>
+
+        <div class="actions">
+          <button class="btn" id="spin" type="button">Girar</button>
+          <button class="btn ghost" id="started" type="button" hidden>Ya lo empecé</button>
+          <button class="btn ghost" id="redo" type="button" hidden>Borrar y girar de nuevo</button>
+        </div>
+
+        <fieldset>
+          <legend>Qué incluir</legend>
+          <div class="chips" id="modes"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Tipos</legend>
+          <div class="chips" id="chips"></div>
+        </fieldset>
+
+        <div class="history" id="history" hidden>
+          <div class="hhead">
+            <h3>Tiradas anteriores</h3>
+            <button class="link" id="clearHistory" type="button">Limpiar lista</button>
+          </div>
+          <ol id="historyList"></ol>
+        </div>
+
+        <button class="link" id="restore" type="button" hidden></button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+  const ALL = [{"t":"3D Kanojo: Real Girl 2nd Season","y":"TV","e":12,"w":0},{"t":"86","y":"TV","e":11,"w":0},{"t":"91 Days","y":"TV","e":12,"w":0},{"t":"Absolute Duo","y":"TV","e":12,"w":0},{"t":"Afro Samurai","y":"TV","e":5,"w":0},{"t":"Aho Girl","y":"TV","e":12,"w":0},{"t":"Aishiteru Game wo Owarasetai","y":"TV","e":12,"w":5},{"t":"Akane-banashi","y":"TV","e":12,"w":0},{"t":"Akiba Meido Sensou","y":"TV","e":12,"w":0},{"t":"Akira","y":"Movie","e":1,"w":0},{"t":"Alice to Therese no Maboroshi Koujou","y":"Movie","e":1,"w":0},{"t":"Amaama to Inazuma","y":"TV","e":12,"w":0},{"t":"Amagami SS","y":"TV","e":25,"w":0},{"t":"Amagi Brilliant Park","y":"TV","e":13,"w":0},{"t":"Ansatsusha de Aru Ore no Status ga Yuusha yori mo Akiraka ni Tsuyoi no da ga","y":"TV","e":12,"w":0},{"t":"Ao no Exorcist: Shimane Illuminati-hen","y":"TV","e":12,"w":0},{"t":"Ao no Hako","y":"TV","e":25,"w":0},{"t":"Aoi Bungaku Series","y":"TV","e":12,"w":0},{"t":"Araburu Kisetsu no Otome-domo yo.","y":"TV","e":12,"w":3},{"t":"Bakemonogatari","y":"TV","e":15,"w":0},{"t":"Beck","y":"TV","e":26,"w":0},{"t":"Bikini Warriors","y":"TV","e":12,"w":0},{"t":"Blue Lock: Episode Nagi","y":"Movie","e":1,"w":0},{"t":"Blue Period","y":"TV","e":12,"w":0},{"t":"Bocchi the Rock!","y":"TV","e":12,"w":1},{"t":"Boku ga Aishita Subete no Kimi e","y":"Movie","e":1,"w":0},{"t":"Boku no Hero Academia the Movie 3: World Heroes' Mission","y":"Movie","e":1,"w":0},{"t":"Boku no Hero Academia the Movie 4: You're Next","y":"Movie","e":1,"w":0},{"t":"Boogiepop wa Warawanai (2019)","y":"TV","e":18,"w":0},{"t":"Buddy Daddies","y":"TV","e":12,"w":1},{"t":"Cardcaptor Sakura: Clear Card-hen","y":"TV","e":22,"w":0},{"t":"Chainsaw Man Movie: Reze-hen","y":"Movie","e":1,"w":0},{"t":"Chainsaw Man Recap","y":"ONA","e":2,"w":0},{"t":"Chanto Suenai Kyuuketsuki-chan","y":"TV","e":12,"w":0},{"t":"Charlotte","y":"TV","e":13,"w":0},{"t":"Chitose-kun wa Ramune Bin no Naka","y":"TV","e":13,"w":0},{"t":"Claymore","y":"TV","e":26,"w":0},{"t":"Code Geass: Hangyaku no Lelouch","y":"TV","e":25,"w":0},{"t":"Dagashi Kashi 2","y":"TV","e":12,"w":0},{"t":"Dandadan 3rd Season","y":"TV","e":0,"w":0},{"t":"Danganronpa: Kibou no Gakuen to Zetsubou no Koukousei The Animation","y":"TV","e":13,"w":0},{"t":"Danshi Koukousei no Nichijou","y":"TV","e":12,"w":0},{"t":"Darling in the FranXX","y":"TV","e":24,"w":0},{"t":"Darwin's Game","y":"TV","e":11,"w":0},{"t":"Date A Live V","y":"TV","e":12,"w":2},{"t":"Dead Dead Demons Dededede Destruction (ONA)","y":"ONA","e":17,"w":0},{"t":"Dead Dead Demons Dededede Destruction (ONA) Episode 0","y":"ONA","e":1,"w":0},{"t":"Dead Mount Death Play","y":"TV","e":12,"w":0},{"t":"Deaimon","y":"TV","e":12,"w":0},{"t":"Death Parade","y":"TV","e":12,"w":0},{"t":"Dokyuu Hentai HxEros","y":"TV","e":12,"w":0},{"t":"Dorohedoro","y":"TV","e":12,"w":0},{"t":"Dororo","y":"TV","e":24,"w":0},{"t":"Doukyonin wa Hiza Tokidoki Atama no Ue.","y":"TV","e":12,"w":0},{"t":"Dungeon Meshi Season 2","y":"TV","e":0,"w":0},{"t":"Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka IV: Shin Shou - Meikyuu-hen","y":"TV","e":11,"w":0},{"t":"Durarara!!","y":"TV","e":24,"w":0},{"t":"Eizouken ni wa Te wo Dasu na!","y":"TV","e":12,"w":0},{"t":"Elf-san wa Yaserarenai.","y":"TV","e":12,"w":0},{"t":"Enen no Shouboutai","y":"TV","e":24,"w":0},{"t":"Flying Witch","y":"TV","e":12,"w":0},{"t":"Fuguushoku \"Kanteishi\" ga Jitsu wa Saikyou Datta","y":"TV","e":12,"w":0},{"t":"Fullmetal Alchemist: Brotherhood","y":"TV","e":64,"w":0},{"t":"Fumetsu no Anata e Season 3","y":"TV","e":22,"w":11},{"t":"Gachiakuta 2nd Season","y":"TV","e":0,"w":0},{"t":"Gakusen Toshi Asterisk","y":"TV","e":12,"w":0},{"t":"Gakusen Toshi Asterisk 2nd Season","y":"TV","e":12,"w":0},{"t":"Gamers!","y":"TV","e":12,"w":0},{"t":"Gin no Saji","y":"TV","e":11,"w":0},{"t":"Gleipnir","y":"TV","e":13,"w":0},{"t":"Gnosia","y":"TV","e":21,"w":0},{"t":"Golden Kamuy","y":"TV","e":12,"w":0},{"t":"Grand Blue Season 4","y":"TV","e":0,"w":0},{"t":"Grisaia: Phantom Trigger","y":"TV","e":13,"w":0},{"t":"Gyakuten Saiban: Sono \"Shinjitsu\" Igi Ari!","y":"TV","e":24,"w":0},{"t":"Hai to Gensou no Grimgar","y":"TV","e":12,"w":0},{"t":"Hakata Tonkotsu Ramens","y":"TV","e":12,"w":0},{"t":"Handa-kun","y":"TV","e":12,"w":0},{"t":"Hataraku Maou-sama!","y":"TV","e":13,"w":0},{"t":"Hataraku Saibou: Kaze Shoukougun","y":"Special","e":1,"w":0},{"t":"Hellsing Ultimate","y":"OVA","e":10,"w":4},{"t":"Hikaru ga Shinda Natsu","y":"TV","e":12,"w":0},{"t":"Hinamatsuri","y":"TV","e":12,"w":0},{"t":"Hitoribocchi no Marumaru Seikatsu","y":"TV","e":12,"w":0},{"t":"Horimiya","y":"TV","e":13,"w":0},{"t":"Hyouka","y":"TV","e":22,"w":0},{"t":"Inou-Battle wa Nichijou-kei no Naka de","y":"TV","e":12,"w":0},{"t":"Inu ni Nattara Suki na Hito ni Hirowareta.","y":"TV","e":12,"w":0},{"t":"Inuyashiki","y":"TV","e":11,"w":0},{"t":"Irozuku Sekai no Ashita kara","y":"TV","e":13,"w":3},{"t":"Isekai Shokudou","y":"TV","e":12,"w":0},{"t":"Isekai Suicide Squad","y":"TV","e":10,"w":0},{"t":"Jigoku Sensei Nube (2025)","y":"TV","e":13,"w":0},{"t":"Jigoku Shoujo","y":"TV","e":26,"w":0},{"t":"Jitsu wa Watashi wa","y":"TV","e":13,"w":0},{"t":"Josee to Tora to Sakana-tachi","y":"Movie","e":1,"w":0},{"t":"Jujutsu Kaisen: Shimetsu Kaiyuu - Kouhen","y":"TV","e":0,"w":0},{"t":"K-On!","y":"TV","e":13,"w":0},{"t":"K-On!!","y":"TV","e":26,"w":0},{"t":"Kaguya-sama wa Kokurasetai? Tensai-tachi no Renai Zunousen","y":"TV","e":12,"w":0},{"t":"Kaii to Otome to Kamikakushi","y":"TV","e":12,"w":0},{"t":"Kaijuu 8-gou","y":"TV","e":12,"w":0},{"t":"Kakkou no Iinazuke","y":"TV","e":24,"w":0},{"t":"Kakushigoto","y":"TV","e":12,"w":0},{"t":"Kao ni Denai Kashiwada-san to Kao ni Deru Oota-kun","y":"TV","e":12,"w":3},{"t":"Kaoru Hana wa Rin to Saku","y":"TV","e":13,"w":0},{"t":"Katainaka no Ossan Kensei ni Naru 3rd Season","y":"TV","e":0,"w":0},{"t":"Keijo!!!!!!!!","y":"TV","e":12,"w":0},{"t":"Kill la Kill","y":"TV","e":24,"w":0},{"t":"Killing Bites","y":"TV","e":12,"w":0},{"t":"Kimetsu no Yaiba","y":"TV","e":26,"w":0},{"t":"Kimi no Suizou wo Tabetai","y":"Movie","e":1,"w":0},{"t":"Kimi wa Houkago Insomnia","y":"TV","e":13,"w":0},{"t":"Kimi wo Aishita Hitori no Boku e","y":"Movie","e":1,"w":0},{"t":"Kokoro Connect","y":"TV","e":13,"w":0},{"t":"Komi-san wa Comyushou desu.","y":"TV","e":12,"w":4},{"t":"Kono Subarashii Sekai ni Shukufuku wo!","y":"TV","e":10,"w":0},{"t":"Kono Yo no Hate de Koi wo Utau Shoujo YU-NO","y":"TV","e":26,"w":16},{"t":"Koori Zokusei Danshi to Cool na Douryou Joshi","y":"TV","e":12,"w":0},{"t":"Koroshi Ai","y":"TV","e":12,"w":4},{"t":"Kotoura-san","y":"TV","e":12,"w":0},{"t":"Koukyuu no Karasu","y":"TV","e":13,"w":0},{"t":"Kubo-san wa Mob wo Yurusanai","y":"TV","e":12,"w":0},{"t":"Kuroiwa Medaka ni Watashi no Kawaii ga Tsuujinai Season 2","y":"TV","e":0,"w":0},{"t":"Kyokou Suiri","y":"TV","e":12,"w":0},{"t":"Lazarus","y":"TV","e":13,"w":0},{"t":"Lovely★Complex","y":"TV","e":24,"w":0},{"t":"Lycoris Recoil","y":"TV","e":13,"w":0},{"t":"Made in Abyss","y":"TV","e":13,"w":0},{"t":"Mahou Shoujo Madoka★Magica","y":"TV","e":12,"w":0},{"t":"Mahoutsukai no Yome","y":"TV","e":24,"w":0},{"t":"Mairimashita! Iruma-kun","y":"TV","e":23,"w":0},{"t":"Make Heroine ga Oosugiru! 2nd Season","y":"TV","e":0,"w":0},{"t":"Maken-Ki!","y":"TV","e":12,"w":0},{"t":"Maken-Ki! Two","y":"TV","e":10,"w":0},{"t":"Mamahaha no Tsurego ga Motokano datta","y":"TV","e":12,"w":2},{"t":"Manyuu Hikenchou","y":"TV","e":12,"w":0},{"t":"Maou Gakuin no Futekigousha II: Shijou Saikyou no Maou no Shiso Tensei shite Shison-tachi no Gakkou e Kayou","y":"TV","e":12,"w":1},{"t":"Marriagetoxin","y":"TV","e":13,"w":0},{"t":"Mayonaka Heart Tune","y":"TV","e":12,"w":0},{"t":"Megalo Box","y":"TV","e":13,"w":0},{"t":"Mikadono Sanshimai wa Angai Choroi.","y":"TV","e":12,"w":0},{"t":"Monogatari Series: Second Season","y":"TV","e":26,"w":0},{"t":"Monster","y":"TV","e":74,"w":0},{"t":"Musaigen no Phantom World","y":"TV","e":13,"w":0},{"t":"Mushoku Tensei: Isekai Ittara Honki Dasu","y":"TV","e":11,"w":0},{"t":"My Home Hero","y":"TV","e":12,"w":0},{"t":"Nami yo Kiitekure","y":"TV","e":12,"w":0},{"t":"NegaPosi Angler","y":"TV","e":12,"w":0},{"t":"Neko to Ryuu 2nd Season","y":"TV","e":0,"w":0},{"t":"New Game!","y":"TV","e":12,"w":0},{"t":"New Game!!","y":"TV","e":12,"w":0},{"t":"NHK ni Youkoso!","y":"TV","e":24,"w":0},{"t":"Nichijou","y":"TV","e":26,"w":0},{"t":"No Game No Life: Zero","y":"Movie","e":1,"w":0},{"t":"Non Non Biyori","y":"TV","e":12,"w":0},{"t":"Noragami","y":"TV","e":12,"w":0},{"t":"Occultic;Nine","y":"TV","e":12,"w":0},{"t":"One Punch Man 3 Part 2","y":"TV","e":0,"w":0},{"t":"One Room Hiatari Futsuu Tenshi-tsuki.","y":"TV","e":12,"w":0},{"t":"Ore Monogatari!!","y":"TV","e":24,"w":0},{"t":"Oshiete! Galko-chan","y":"TV","e":12,"w":0},{"t":"Otome Kaijuu Caraméliser","y":"TV","e":12,"w":2},{"t":"Otonari ni Ginga","y":"TV","e":12,"w":3},{"t":"Ousama Ranking","y":"TV","e":23,"w":0},{"t":"Owarimonogatari","y":"TV","e":12,"w":0},{"t":"Owarimonogatari 2nd Season","y":"TV Special","e":7,"w":0},{"t":"Peach Boy Riverside","y":"TV","e":12,"w":0},{"t":"Plastic Memories","y":"TV","e":13,"w":0},{"t":"Pluto","y":"ONA","e":8,"w":0},{"t":"Psycho-Pass 2","y":"TV","e":11,"w":1},{"t":"Radiant 2nd Season","y":"TV","e":21,"w":0},{"t":"Ranma ½ (2024)","y":"TV","e":12,"w":0},{"t":"ReLIFE","y":"TV","e":13,"w":0},{"t":"Replica datte Koi wo Suru.","y":"TV","e":13,"w":3},{"t":"Rikei ga Koi ni Ochita no de Shoumei shitemita.","y":"TV","e":12,"w":0},{"t":"Rikei ga Koi ni Ochita no de Shoumei shitemita. Heart","y":"TV","e":12,"w":0},{"t":"Risou no Himo Seikatsu","y":"TV","e":0,"w":0},{"t":"Sabikui Bisco Season 2","y":"TV","e":0,"w":0},{"t":"Saenai Heroine no Sodatekata","y":"TV","e":12,"w":0},{"t":"Sakamoto Days 2nd Season","y":"TV","e":0,"w":0},{"t":"Seiren","y":"TV","e":12,"w":0},{"t":"Seishun Buta Yarou wa Odekake Sister no Yume wo Minai","y":"Movie","e":1,"w":0},{"t":"Seishun Buta Yarou wa Randoseru Girl no Yume wo Minai","y":"Movie","e":1,"w":0},{"t":"Seishun Buta Yarou wa Santa Claus no Yume wo Minai","y":"TV","e":13,"w":0},{"t":"Sekai de Ichiban Tsuyoku Naritai!","y":"TV","e":12,"w":0},{"t":"Sekai Saikou no Ansatsusha Isekai Kizoku ni Tensei suru Season 2","y":"TV","e":0,"w":0},{"t":"Senpai ga Uzai Kouhai no Hanashi","y":"TV","e":12,"w":0},{"t":"Senryuu Shoujo","y":"TV","e":12,"w":0},{"t":"Sentouin Haken shimasu!","y":"TV","e":12,"w":0},{"t":"Servant x Service","y":"TV","e":13,"w":0},{"t":"Shikanoko Nokonoko Koshitantan","y":"TV","e":12,"w":0},{"t":"Shin Shinka no Mi: Shiranai Uchi ni Kachigumi Jinsei","y":"TV","e":12,"w":0},{"t":"Shinchou Yuusha: Kono Yuusha ga Ore Tueee Kuse ni Shinchou Sugiru","y":"TV","e":12,"w":0},{"t":"Shingeki no Kyojin Movie: Kanketsu-hen - The Last Attack","y":"Movie","e":1,"w":0},{"t":"Shiotaiou no Satou-san ga Ore ni dake Amai","y":"TV","e":0,"w":0},{"t":"Shiroi Suna no Aquatope","y":"TV","e":24,"w":0},{"t":"Shokugeki no Souma","y":"TV","e":24,"w":15},{"t":"Shoushimin Series","y":"TV","e":10,"w":0},{"t":"Shouwa Genroku Rakugo Shinjuu","y":"TV","e":13,"w":0},{"t":"Sin: Nanatsu no Taizai","y":"TV","e":12,"w":0},{"t":"Sin: Nanatsu no Taizai Zange-roku","y":"ONA","e":12,"w":0},{"t":"Skip to Loafer","y":"TV","e":12,"w":0},{"t":"Somali to Mori no Kamisama","y":"TV","e":12,"w":0},{"t":"Sonny Boy","y":"TV","e":12,"w":0},{"t":"Sousou no Frieren: Ougonkyou-hen","y":"TV","e":0,"w":0},{"t":"Steins;Gate","y":"TV","e":24,"w":0},{"t":"Strike the Blood","y":"TV","e":24,"w":0},{"t":"Summertime Render","y":"TV","e":25,"w":0},{"t":"Tada-kun wa Koi wo Shinai","y":"TV","e":13,"w":0},{"t":"Tadaima Okaeri","y":"TV","e":12,"w":0},{"t":"Tai-Ari deshita. Ojousama wa Kakutou Game nante Shinai","y":"TV","e":12,"w":0},{"t":"Takopii no Genzai","y":"ONA","e":6,"w":1},{"t":"Tanaka-kun wa Itsumo Kedaruge","y":"TV","e":12,"w":0},{"t":"Tate no Yuusha no Nariagari Season 5","y":"TV","e":0,"w":0},{"t":"Tengen Toppa Gurren Lagann","y":"TV","e":27,"w":0},{"t":"Tengoku Daimakyou","y":"TV","e":13,"w":0},{"t":"Tenki no Ko","y":"Movie","e":1,"w":0},{"t":"Tenmaku no Jaadugar","y":"TV","e":12,"w":0},{"t":"Tensei shitara Slime Datta Ken 4th Season Part 2","y":"TV","e":0,"w":0},{"t":"Tensei shitara Slime Datta Ken: Clayman Revenge","y":"TV","e":0,"w":0},{"t":"Tensura Nikki: Tensei shitara Slime Datta Ken","y":"TV","e":12,"w":1},{"t":"Tokidoki Bosotto Russia-go de Dereru Tonari no Alya-san Season 2","y":"TV","e":0,"w":0},{"t":"Tomo-chan wa Onnanoko!","y":"TV","e":13,"w":0},{"t":"Tomodachi Game","y":"TV","e":12,"w":1},{"t":"Tondemo Skill de Isekai Hourou Meshi","y":"TV","e":12,"w":0},{"t":"Tongari Boushi no Atelier 2nd Season","y":"TV","e":0,"w":0},{"t":"Totsukuni no Shoujo (2022)","y":"OVA","e":1,"w":0},{"t":"Tougen Anki","y":"TV","e":24,"w":0},{"t":"Touhai Densetsu Akagi: Yami ni Maiorita Tensai","y":"TV","e":26,"w":0},{"t":"Trinity Seven","y":"TV","e":12,"w":0},{"t":"Tsugu Tsugumomo","y":"TV","e":12,"w":0},{"t":"Tsuki ga Michibiku Isekai Douchuu 3rd Season","y":"TV","e":0,"w":0},{"t":"Tsukimonogatari","y":"TV Special","e":4,"w":0},{"t":"Tsuma Shougakusei ni Naru.","y":"TV","e":12,"w":0},{"t":"Tsurezure Children","y":"TV","e":12,"w":0},{"t":"Tsuujou Kougeki ga Zentai Kougeki de Ni-kai Kougeki no Okaasan wa Suki desu ka?","y":"TV","e":12,"w":0},{"t":"Uchi no Kaisha no Chiisai Senpai no Hanashi","y":"TV","e":12,"w":0},{"t":"Udon no Kuni no Kiniro Kemari","y":"TV","e":12,"w":0},{"t":"Umibe no Étranger","y":"Movie","e":1,"w":0},{"t":"Un-Go","y":"TV","e":11,"w":0},{"t":"Uzaki-chan wa Asobitai! Double","y":"TV","e":13,"w":0},{"t":"Uzumaki","y":"TV","e":4,"w":0},{"t":"Vanitas no Karte","y":"TV","e":12,"w":0},{"t":"Vinland Saga","y":"TV","e":24,"w":0},{"t":"Violet Evergarden","y":"TV","e":13,"w":0},{"t":"Watashi wo Tabetai Hitodenashi","y":"TV","e":13,"w":3},{"t":"Witch Craft Works","y":"TV","e":12,"w":0},{"t":"Wonder Egg Priority","y":"TV","e":12,"w":0},{"t":"WWW.Working!!","y":"TV","e":13,"w":0},{"t":"Yahari Ore no Seishun Love Comedy wa Machigatteiru. Kan","y":"TV","e":12,"w":0},{"t":"Yamada-kun to 7-nin no Majo","y":"TV","e":12,"w":0},{"t":"Yamada-kun to Lv999 no Koi wo Suru","y":"TV","e":13,"w":0},{"t":"Yesterday wo Utatte","y":"TV","e":12,"w":0},{"t":"Yofukashi no Uta","y":"TV","e":13,"w":0},{"t":"Yomi no Tsugai 2nd Season","y":"TV","e":0,"w":0},{"t":"Youjo Senki","y":"TV","e":12,"w":0},{"t":"Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e 2nd Season","y":"TV","e":13,"w":2},{"t":"Yuru Camp△ Season 2","y":"TV","e":13,"w":0},{"t":"Yuusha-kei ni Shosu: Choubatsu Yuusha 9004-tai Keimu Kiroku","y":"TV","e":12,"w":0},{"t":"Zenshuu.","y":"TV","e":12,"w":0},{"t":"Zero no Tsukaima","y":"TV","e":13,"w":0},{"t":"Zom 100: Zombie ni Naru made ni Shitai 100 no Koto","y":"TV","e":12,"w":0},{"t":"Zombieland Saga Revenge","y":"TV","e":12,"w":0}];
+  const STORE = "ptw-empezados";
+  const PALETTE = ["#8C9BFF","#4FD1C1","#FF8F85","#FFC95C","#C3A9F5"];
+  const MAX_SEGS = 12;
+
+  const $ = id => document.getElementById(id);
+  const canvas = $("wheel"), ctx = canvas.getContext("2d");
+  const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  let started = new Set();
+  try { started = new Set(JSON.parse(localStorage.getItem(STORE) || "[]")); } catch (e) {}
+  function saveStarted(){ try { localStorage.setItem(STORE, JSON.stringify([...started])); } catch (e) {} }
+
+  const types = [...new Set(ALL.map(a => a.y))].sort((a,b) =>
+    ALL.filter(x => x.y === b).length - ALL.filter(x => x.y === a).length);
+  const active = new Set(types);
+
+  let segs = [], rot = Math.random() * Math.PI * 2, spinning = false, current = null, history = [];
+
+  let mode = "todos";
+  const inMode = a => mode === "todos" || (mode === "espera" ? a.w > 0 : a.w === 0);
+  const pool = () => ALL.filter(a => active.has(a.y) && inMode(a) && !started.has(a.t));
+  function shuffle(arr){
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+  const mod = (x, m) => ((x % m) + m) % m;
+
+  /* ---------- wheel drawing ---------- */
+  function fitLabel(name, type, maxW){
+    const suffix = "  ·  " + type;
+    if (ctx.measureText(name + suffix).width <= maxW) return name + suffix;
+    let t = name;
+    while (t.length > 1 && ctx.measureText(t + "…" + suffix).width > maxW) t = t.slice(0, -1);
+    return t.trimEnd() + "…" + suffix;
+  }
+  function draw(){
+    const size = canvas.clientWidth; if (!size) return;
+    const dpr = window.devicePixelRatio || 1;
+    if (canvas.width !== Math.round(size * dpr)){ canvas.width = canvas.height = Math.round(size * dpr); }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    const cs = getComputedStyle(document.documentElement);
+    const rimC = cs.getPropertyValue("--rim").trim(), hubC = cs.getPropertyValue("--hub").trim(), lamp = cs.getPropertyValue("--lamp").trim();
+    const c = size / 2, R = c - 8, r = R * 0.93;
+
+    ctx.beginPath(); ctx.arc(c, c, R, 0, Math.PI * 2); ctx.fillStyle = rimC; ctx.fill();
+
+    const n = segs.length;
+    if (!n){
+      ctx.beginPath(); ctx.arc(c, c, r, 0, Math.PI * 2); ctx.fillStyle = hubC; ctx.fill();
+      return;
+    }
+    const a = Math.PI * 2 / n;
+    const fs = Math.max(11, R * 0.058);
+    ctx.font = `700 ${fs}px "Zen Kaku Gothic New", "Segoe UI", Arial, sans-serif`;
+    ctx.textBaseline = "middle";
+    for (let i = 0; i < n; i++){
+      const s = rot + i * a;
+      let col = i % PALETTE.length;
+      if (i === n - 1 && n > 1 && col === 0) col = 2;
+      ctx.beginPath(); ctx.moveTo(c, c); ctx.arc(c, c, r, s, s + a); ctx.closePath();
+      ctx.fillStyle = PALETTE[col]; ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = rimC; ctx.stroke();
+
+      ctx.save(); ctx.translate(c, c); ctx.rotate(s + a / 2);
+      ctx.textAlign = "right"; ctx.fillStyle = "#1A1526";
+      const avail = r - 14 - R * 0.2;
+      ctx.fillText(fitLabel(segs[i].t, segs[i].y, avail), r - 14, 0);
+      ctx.restore();
+    }
+    const dots = Math.max(24, n * 2);
+    for (let i = 0; i < dots; i++){
+      const ang = rot + i * (Math.PI * 2 / dots);
+      ctx.beginPath(); ctx.arc(c + Math.cos(ang) * (R + r) / 2, c + Math.sin(ang) * (R + r) / 2, Math.max(2, R * 0.011), 0, Math.PI * 2);
+      ctx.fillStyle = lamp; ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(c, c, R * 0.13, 0, Math.PI * 2);
+    ctx.fillStyle = hubC; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = rimC; ctx.stroke();
+  }
+  function idleWheel(){
+    segs = shuffle(pool()).slice(0, MAX_SEGS);
+    draw();
+  }
+
+  /* ---------- UI ---------- */
+  function renderCount(){
+    const p = pool().length;
+    $("count").textContent = `${p} de ${ALL.length} animes en la ruleta`;
+    const rs = $("restore");
+    if (started.size){ rs.hidden = false; rs.textContent = `Restaurar los ${started.size} que ya saqué`; } else rs.hidden = true;
+    $("spin").disabled = spinning || p === 0;
+  }
+  function renderChips(){
+    const box = $("chips"); box.textContent = "";
+    types.forEach(t => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip";
+      b.setAttribute("aria-pressed", active.has(t));
+      const label = document.createTextNode(t);
+      const n = document.createElement("span"); n.className = "n";
+      n.textContent = ALL.filter(a => a.y === t && inMode(a) && !started.has(a.t)).length;
+      b.append(label, n);
+      b.addEventListener("click", () => {
+        if (spinning) return;
+        active.has(t) ? active.delete(t) : active.add(t);
+        b.setAttribute("aria-pressed", active.has(t));
+        afterPoolChange();
+      });
+      box.appendChild(b);
+    });
+  }
+  const MODES = [["todos","Todos"],["nuevos","Sin empezar"],["espera","En espera"]];
+  function renderModes(){
+    const box = $("modes"); box.textContent = "";
+    MODES.forEach(([k, label]) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", mode === k);
+      b.append(document.createTextNode(label));
+      const n = document.createElement("span"); n.className = "n";
+      n.textContent = ALL.filter(a => (k === "todos" || (k === "espera" ? a.w > 0 : a.w === 0)) && active.has(a.y) && !started.has(a.t)).length;
+      b.appendChild(n);
+      b.addEventListener("click", () => { if (spinning) return; mode = k; afterPoolChange(); });
+      box.appendChild(b);
+    });
+  }
+  function afterPoolChange(){
+    renderModes();
+    renderCount(); renderChips(); idleWheel();
+    if (!pool().length && !current){
+      $("result").innerHTML = ""; const p = document.createElement("p"); p.className = "placeholder";
+      p.textContent = "No quedan animes con estos filtros. Activa otro tipo o restaura la lista."; $("result").appendChild(p);
+    }
+  }
+  function showResult(a){
+    const box = $("result"); box.textContent = "";
+    box.classList.remove("pop"); void box.offsetWidth; box.classList.add("pop");
+    const h = document.createElement("h2"); h.textContent = a.t;
+    const meta = document.createElement("div"); meta.className = "meta";
+    const badge = document.createElement("span"); badge.className = "badge"; badge.textContent = a.y;
+    const eps = document.createElement("span"); eps.className = "eps";
+    eps.textContent = a.e > 0 ? `${a.e} ${a.e === 1 ? "episodio" : "episodios"}` : "Episodios sin definir";
+    meta.append(badge, eps);
+    box.append(h, meta);
+    if (a.w > 0){
+      const hold = document.createElement("p"); hold.className = "hold";
+      hold.textContent = a.e > 0
+        ? `En espera: viste ${a.w} de ${a.e}. Retomá desde el episodio ${Math.min(a.w + 1, a.e)}.`
+        : `En espera: viste ${a.w} episodios. Retomá desde el episodio ${a.w + 1}.`;
+      box.appendChild(hold);
+    }
+    updateStartedBtn();
+  }
+  function updateStartedBtn(){
+    const b = $("started");
+    $("redo").hidden = !current;
+    if (!current){ b.hidden = true; return; }
+    b.hidden = false;
+    b.textContent = started.has(current.t) ? "Deshacer: volver a la ruleta" : (current.w > 0 ? "Ya lo retomé" : "Ya lo empecé");
+  }
+  function renderHistory(){
+    $("history").hidden = history.length === 0;
+    const ol = $("historyList"); ol.textContent = "";
+    history.slice(0, 10).forEach(a => {
+      const li = document.createElement("li");
+      const s1 = document.createElement("span"); s1.textContent = a.t;
+      const s2 = document.createElement("span"); s2.textContent = a.y;
+      li.append(s1, s2); ol.appendChild(li);
+    });
+  }
+
+  /* ---------- spin ---------- */
+  function spin(){
+    if (spinning) return;
+    const p = pool(); if (!p.length) return;
+    const winner = p[Math.floor(Math.random() * p.length)];
+    const n = Math.min(MAX_SEGS, p.length);
+    const others = shuffle(p.filter(x => x !== winner)).slice(0, n - 1);
+    const w = Math.floor(Math.random() * n);
+    others.splice(w, 0, winner); segs = others;
+
+    const a = Math.PI * 2 / n;
+    const desired = -Math.PI / 2 - (w * a + a / 2) + (Math.random() - 0.5) * a * 0.7;
+    const turns = 5 + Math.floor(Math.random() * 3);
+    const from = rot, to = rot + mod(desired - rot, Math.PI * 2) + turns * Math.PI * 2;
+
+    spinning = true; $("redo").disabled = true; $("spin").disabled = true; $("spin").textContent = "Girando…";
+    const finish = () => {
+      rot = mod(to, Math.PI * 2); draw(); spinning = false; $("redo").disabled = false;
+      current = winner; history.unshift(winner);
+      $("spin").textContent = "Girar de nuevo";
+      showResult(winner); renderHistory(); renderCount();
+    };
+    if (reduceMotion()){ rot = to; finish(); return; }
+    const t0 = performance.now(), dur = 5200;
+    (function frame(now){
+      const k = Math.min(1, (now - t0) / dur);
+      rot = from + (to - from) * (1 - Math.pow(1 - k, 4));
+      draw();
+      k < 1 ? requestAnimationFrame(frame) : finish();
+    })(t0);
+  }
+
+  $("spin").addEventListener("click", spin);
+  $("redo").addEventListener("click", () => {
+    if (spinning || !current) return;
+    const i = history.indexOf(current);
+    if (i !== -1) history.splice(i, 1);
+    renderHistory();
+    spin();
+  });
+  $("clearHistory").addEventListener("click", () => { history = []; renderHistory(); });
+  $("started").addEventListener("click", () => {
+    if (!current) return;
+    started.has(current.t) ? started.delete(current.t) : started.add(current.t);
+    saveStarted(); updateStartedBtn(); renderCount(); renderChips();
+    if (!spinning) idleWheel();
+  });
+  $("restore").addEventListener("click", () => {
+    started.clear(); saveStarted(); updateStartedBtn(); renderCount(); renderChips(); idleWheel();
+  });
+
+  window.addEventListener("resize", draw);
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+
+  renderModes(); renderCount(); renderChips(); idleWheel();
+  </script>
+  </body>
+</html>
