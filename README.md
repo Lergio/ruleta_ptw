@@ -1,231 +1,85 @@
-# 🎰 Ruleta PTW
+# 🎡 ¿Qué anime empiezo?
 
-Una ruleta interactiva para decidir **qué anime ver a continuación** cuando la lista de pendientes empieza a ser demasiado grande.
+Una ruleta que elige por vos qué anime arrancar (o retomar), armada dinámicamente a partir de tu lista de **MyAnimeList**.
 
-El proyecto nació como una forma sencilla de elegir aleatoriamente entre los animes que tengo pendientes, tanto los que todavía no empecé como aquellos que dejé en espera para retomarlos más adelante.
+Toma los animes en **Plan to Watch** y **On Hold** de un usuario de MAL, los muestra en una ruleta y sortea uno al azar, devolviendo su **nombre** y su **tipo** (TV, Movie, ONA, OVA, etc.).
 
-## ✨ Características
+## Demo
 
-* 🎰 **Ruleta interactiva** para seleccionar un anime al azar.
-* 📺 Soporte para distintos tipos de contenido:
+👉 https://lergio.github.io/ruleta_ptw/
 
-  * `TV`
-  * `Movie`
-  * `ONA`
-  * `OVA`
-  * `Special`
-  * `TV Special`
-* 🔄 Tres modos de selección:
+## Funcionalidades
 
-  * **Todos** — incluye animes sin empezar y animes en espera.
-  * **Sin empezar** — solamente animes que todavía no comencé.
-  * **En espera** — solamente animes que ya empecé y dejé pendientes.
-* 🏷️ Filtros por tipo de anime.
-* 📊 Contador de animes disponibles según los filtros seleccionados.
-* ▶️ Indicación del episodio desde el que retomar un anime que estaba en espera.
-* 📝 Historial de las últimas tiradas.
-* 💾 Guarda localmente los animes que ya fueron seleccionados para evitar que vuelvan a aparecer.
-* ↩️ Permite deshacer la selección de un anime y devolverlo a la ruleta.
-* 🔁 Permite borrar el resultado actual y volver a girar.
-* 🌙 Soporte para modo claro y oscuro.
-* ♿ Respeta la configuración de reducción de movimiento del sistema.
-* 📱 Diseño adaptable para escritorio y dispositivos móviles.
+- Trae la lista directamente desde tu cuenta de MyAnimeList escribiendo tu usuario (no requiere login ni contraseña).
+- Combina **Plan to Watch** y **On Hold** en una sola ruleta.
+- Filtros por tipo de anime (TV, Movie, OVA, etc.) y por estado (todos / plan to watch / en espera).
+- En los animes "en espera" muestra cuántos episodios ya viste y desde cuál retomar.
+- Botón **"Ya lo empecé" / "Ya lo retomé"**: saca ese anime de la ruleta (se guarda en tu navegador, por usuario).
+- Botón **"Borrar y girar de nuevo"**: descarta el último resultado sin marcarlo como empezado y vuelve a girar.
+- Historial de tiradas anteriores, con opción de limpiarlo.
+- Soporta modo claro/oscuro y es responsive.
 
-## 🎯 ¿Cómo funciona?
+## Estructura del proyecto
 
-La lista de animes está almacenada directamente en el archivo HTML.
-
-Cada anime contiene la siguiente información:
-
-```javascript
-{
-    "t": "Nombre del anime",
-    "y": "TV",
-    "e": 12,
-    "w": 0
-}
+```
+├── index.html              # Página principal
+├── style.css                # Estilos
+├── js/
+│   ├── api.js                # Cliente de la API v2 de MyAnimeList (vía proxy)
+│   └── ruleta.js              # Lógica de la ruleta y de la interfaz
+└── proxy-cloudflare/
+    └── worker.js              # Proxy CORS (Cloudflare Worker) — no se sube a GitHub Pages
 ```
 
-Los campos representan:
+## Cómo funciona
 
-| Campo | Significado                  |
-| ----- | ---------------------------- |
-| `t`   | Título del anime             |
-| `y`   | Tipo de contenido            |
-| `e`   | Cantidad total de episodios  |
-| `w`   | Cantidad de episodios vistos |
+MyAnimeList no permite llamar a su API directamente desde el navegador (no envía cabeceras CORS), así que las peticiones no van directo a `api.myanimelist.net`: pasan primero por un **Cloudflare Worker** propio que actúa de proxy.
 
-Por ejemplo:
-
-```javascript
-{
-    "t": "Bocchi the Rock!",
-    "y": "TV",
-    "e": 12,
-    "w": 1
-}
+```
+navegador (GitHub Pages) → Cloudflare Worker → API de MyAnimeList
 ```
 
-significa que **Bocchi the Rock!** tiene 12 episodios y que ya se vio 1 episodio.
+El worker:
+- Reenvía la consulta a `https://api.myanimelist.net/v2`, agregando el header `X-MAL-CLIENT-ID` con el Client ID (guardado como variable secreta, nunca expuesto en el código del navegador).
+- Devuelve la respuesta con las cabeceras CORS habilitadas solo para el dominio de esta app.
+- Solo reenvía pedidos `GET`; no expone ninguna operación que modifique la cuenta de MyAnimeList.
 
-Cuando `w` es `0`, el anime se considera **sin empezar**.
+`js/api.js` pagina automáticamente los estados `plan_to_watch` y `on_hold` del endpoint [`GET /users/{user_name}/animelist`](https://myanimelist.net/apiconfig/references/api/v2#operation/users_user_id_animelist_get), los combina sin duplicados y los deja listos para la ruleta.
 
-Cuando `w` es mayor que `0`, se considera **en espera**.
+## Configuración (para levantar tu propia copia)
 
-## 🎲 Modos de la ruleta
+### 1. Client ID de MyAnimeList
 
-### Todos
+Creá una app en [myanimelist.net/apiconfig](https://myanimelist.net/apiconfig) y anotá el **Client ID**.
 
-Incluye todos los animes disponibles, independientemente de si fueron empezados o no.
+### 2. Proxy en Cloudflare Workers (gratis)
 
-### Sin empezar
+1. Creá una cuenta en [Cloudflare](https://dash.cloudflare.com/sign-up).
+2. **Workers & Pages** → **Create** → creá un Worker (ej: `mal-proxy`).
+3. Abrí **Edit code**, pegá el contenido de `proxy-cloudflare/worker.js` y hacé **Deploy**.
+4. En **Settings → Variables and Secrets**, agregá una variable secreta `MAL_CLIENT_ID` con tu Client ID.
+5. En `proxy-cloudflare/worker.js`, ajustá `ALLOWED_ORIGIN` con el dominio exacto donde vas a publicar la app (sin ruta, ej: `https://tu-usuario.github.io`), y volvé a hacer Deploy.
+6. Copiá la URL pública del worker (`https://mal-proxy.tu-usuario.workers.dev`).
 
-Incluye únicamente los animes cuyo número de episodios vistos es `0`.
+### 3. Conectar la app al proxy
 
-### En espera
+En `js/api.js`, seteá `BASE_URL` con la URL del worker:
 
-Incluye únicamente los animes que ya tienen episodios vistos.
-
-En este modo, cuando la ruleta selecciona un anime, muestra desde qué episodio se debería continuar.
-
-Por ejemplo:
-
-> En espera: viste 5 de 12. Retomá desde el episodio 6.
-
-## 🏷️ Filtros por tipo
-
-Además del estado, se puede filtrar la ruleta por tipo de contenido.
-
-Los tipos disponibles se generan automáticamente a partir de los datos de la lista, por lo que no es necesario modificar el código si se agrega un nuevo tipo.
-
-## 💾 Persistencia
-
-La ruleta utiliza `localStorage` del navegador para recordar los animes que ya fueron seleccionados.
-
-Esto significa que, después de sacar un anime, este deja de aparecer en las siguientes tiradas.
-
-La información se guarda únicamente en el navegador utilizado y **no se envía a ningún servidor**.
-
-Desde la propia interfaz se puede utilizar:
-
-**"Restaurar los X que ya saqué"**
-
-para devolver todos esos animes a la ruleta.
-
-## 📝 Historial
-
-Cada tirada se agrega al historial de la sesión.
-
-El historial muestra las últimas tiradas realizadas y puede limpiarse desde:
-
-**Tiradas anteriores → Limpiar lista**
-
-El historial no forma parte de la lista permanente de animes seleccionados.
-
-## 🚀 Uso
-
-El proyecto no necesita instalación ni dependencias.
-
-Simplemente descargá o cloná el repositorio y abrí:
-
-```text
-Ruleta_PTW.html
+```js
+BASE_URL: "https://mal-proxy.tu-usuario.workers.dev",
 ```
 
-en un navegador moderno.
+### 4. Publicar
 
-También puede utilizarse directamente desde una página estática, como GitHub Pages.
+Con GitHub Pages alcanza con subir el repo y activarlo en **Settings → Pages**, apuntando a la rama y carpeta donde está `index.html`.
 
-## 🛠️ Modificar la lista de animes
+## Uso
 
-La lista se encuentra en la constante:
+1. Entrá a la app y escribí tu nombre de usuario de MyAnimeList.
+2. Tocá **Cargar lista**.
+3. Ajustá los filtros de tipo/estado si querés acotar la ruleta.
+4. Tocá **Girar**.
 
-```javascript
-const ALL = [...]
-```
+## Privacidad
 
-Cada entrada tiene esta estructura:
-
-```javascript
-{
-    "t": "Nombre",
-    "y": "TV",
-    "e": 12,
-    "w": 0
-}
-```
-
-Por ejemplo:
-
-```javascript
-{
-    "t": "Steins;Gate",
-    "y": "TV",
-    "e": 24,
-    "w": 0
-}
-```
-
-### Agregar un anime sin empezar
-
-Utilizar:
-
-```javascript
-"w": 0
-```
-
-### Agregar un anime que quedó en espera
-
-Si se vieron, por ejemplo, 7 episodios:
-
-```javascript
-"w": 7
-```
-
-La ruleta calculará automáticamente que debe retomarse desde el episodio 8.
-
-## 🎨 Tecnologías
-
-El proyecto está desarrollado utilizando únicamente tecnologías web del lado del cliente:
-
-* **HTML5**
-* **CSS3**
-* **JavaScript**
-* **Canvas API**
-* **LocalStorage API**
-* **Google Fonts**
-
-No utiliza frameworks ni librerías JavaScript externas.
-
-## 📁 Estructura
-
-Actualmente el proyecto está pensado para mantenerse simple:
-
-```text
-Ruleta_PTW/
-└── Ruleta_PTW.html
-```
-
-La aplicación completa —estructura, estilos, datos y lógica— se encuentra dentro del archivo HTML.
-
-## 📌 Estado del proyecto
-
-Proyecto personal en desarrollo.
-
-La lista de animes y las funcionalidades de la ruleta pueden modificarse y ampliarse con el tiempo.
-
----
-
-### 💡 Idea del proyecto
-
-> "Tengo demasiados animes pendientes y no sé cuál ver."
-
-La solución:
-
-> **Que decida la ruleta.** 🎰
-
----
-
-## 📜 Licencia
-
-Este proyecto se distribuye bajo la licencia que se indique en el archivo `LICENSE`.
+La app no guarda tu usuario ni tu lista en ningún servidor propio: la lista se pide en el momento a MyAnimeList (vía el proxy) y solo se guarda localmente en tu navegador qué animes marcaste como "ya empezado", asociado a tu nombre de usuario.
