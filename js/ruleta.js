@@ -46,7 +46,8 @@
 
   const inMode = (a, m = mode) =>
     m === "todos" || (m === "espera" ? a.s === "on_hold" : a.s === "plan_to_watch");
-  const pool = () => ALL.filter((a) => active.has(a.y) && inMode(a) && !started.has(a.id));
+  // Los que todavía no se emitieron (a.u) cuentan para el total pero nunca entran al sorteo.
+  const pool = () => ALL.filter((a) => !a.u && active.has(a.y) && inMode(a) && !started.has(a.id));
 
   function shuffle(arr) {
     const a = arr.slice();
@@ -135,9 +136,13 @@
 
   function renderCount() {
     const p = pool().length;
+    const upcoming = ALL.filter((a) => a.u).length;
     $("count").textContent = ALL.length
       ? `${p} de ${ALL.length} animes en la ruleta`
       : "Cargá tu lista de MyAnimeList para armar la ruleta.";
+    $("countNote").textContent = upcoming
+      ? `${upcoming} ${upcoming === 1 ? "todavía no se emitió" : "todavía no se emitieron"} y no participan del sorteo.`
+      : "";
     const removed = ALL.filter((a) => started.has(a.id)).length;
     const rs = $("restore");
     rs.hidden = removed === 0;
@@ -154,7 +159,7 @@
       b.setAttribute("aria-pressed", mode === k);
       const n = document.createElement("span");
       n.className = "n";
-      n.textContent = ALL.filter((a) => inMode(a, k) && active.has(a.y) && !started.has(a.id)).length;
+      n.textContent = ALL.filter((a) => !a.u && inMode(a, k) && active.has(a.y) && !started.has(a.id)).length;
       b.append(document.createTextNode(label), n);
       b.addEventListener("click", () => {
         if (spinning) return;
@@ -174,7 +179,7 @@
       b.setAttribute("aria-pressed", active.has(t));
       const n = document.createElement("span");
       n.className = "n";
-      n.textContent = ALL.filter((a) => a.y === t && inMode(a) && !started.has(a.id)).length;
+      n.textContent = ALL.filter((a) => a.y === t && !a.u && inMode(a) && !started.has(a.id)).length;
       b.append(document.createTextNode(t), n);
       b.addEventListener("click", () => {
         if (spinning) return;
@@ -307,7 +312,7 @@
   /* ---------- carga desde MyAnimeList ---------- */
   function errorMessage(err) {
     switch (err && err.kind) {
-      case "config": return "Falta configurar el Client ID en js/api.js.";
+      case "config": return "Falta configurar BASE_URL en js/api.js con la URL de tu proxy.";
       case "notfound": return "No encontré a ese usuario en MyAnimeList.";
       case "forbidden": return "La lista de este usuario es privada, o MyAnimeList rechazó la solicitud.";
       case "auth": return "MyAnimeList rechazó el Client ID. Revisá que sea el correcto.";
