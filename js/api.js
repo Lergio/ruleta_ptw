@@ -10,7 +10,9 @@
  *   MalApi.fetchWatchlist(username) -> Promise<Anime[]>
  *
  * Anime = { id, t (título), y (tipo), e (episodios totales, 0 = sin dato),
- *           w (episodios vistos), s ("plan_to_watch" | "on_hold") }
+ *           w (episodios vistos), s ("plan_to_watch" | "on_hold"),
+ *           u (boolean: true si todavía no se emitió / no tiene fecha de estreno
+ *              confirmada en el pasado — cuenta para el total pero no entra al sorteo) }
  */
 const MalApi = (() => {
   const CONFIG = {
@@ -88,7 +90,7 @@ const MalApi = (() => {
         status,
         limit: CONFIG.PAGE_SIZE,
         offset,
-        fields: "list_status,media_type,num_episodes",
+        fields: "list_status,media_type,num_episodes,start_date,status",
         nsfw: "true",
       });
       const data = Array.isArray(page.data) ? page.data : [];
@@ -103,6 +105,9 @@ const MalApi = (() => {
   function toAnime(item) {
     const node = item.node || {};
     const ls = item.list_status || {};
+    // MAL indica el estado de emisión con "status": not_yet_aired | currently_airing | finished_airing.
+    // Si por algún motivo no viene ese campo, usamos start_date como respaldo: sin fecha = todavía no emitido.
+    const upcoming = node.status ? node.status === "not_yet_aired" : !node.start_date;
     return {
       id: node.id,
       t: node.title || "(sin título)",
@@ -110,6 +115,7 @@ const MalApi = (() => {
       e: node.num_episodes || 0,
       w: ls.num_episodes_watched || 0,
       s: ls.status,
+      u: upcoming,
     };
   }
 
