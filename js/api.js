@@ -11,6 +11,7 @@
  *
  * Anime = { id, t (título), y (tipo), e (episodios totales, 0 = sin dato),
  *           w (episodios vistos), s ("plan_to_watch" | "on_hold"),
+ *           yr (año de estreno, número o null si no está disponible),
  *           u (boolean: true si todavía no se emitió / no tiene fecha de estreno
  *              confirmada en el pasado — cuenta para el total pero no entra al sorteo) }
  */
@@ -108,6 +109,7 @@ const MalApi = (() => {
     // MAL indica el estado de emisión con "status": not_yet_aired | currently_airing | finished_airing.
     // Si por algún motivo no viene ese campo, usamos start_date como respaldo: sin fecha = todavía no emitido.
     const upcoming = node.status ? node.status === "not_yet_aired" : !node.start_date;
+    const yearMatch = typeof node.start_date === "string" && node.start_date.match(/^\d{4}/);
     return {
       id: node.id,
       t: node.title || "(sin título)",
@@ -115,6 +117,7 @@ const MalApi = (() => {
       e: node.num_episodes || 0,
       w: ls.num_episodes_watched || 0,
       s: ls.status,
+      yr: yearMatch ? Number(yearMatch[0]) : null,
       u: upcoming,
     };
   }
