@@ -213,6 +213,12 @@
     eps.className = "eps";
     eps.textContent = a.e > 0 ? `${a.e} ${a.e === 1 ? "episodio" : "episodios"}` : "Episodios sin definir";
     meta.append(badge, eps);
+    if (a.yr) {
+      const year = document.createElement("span");
+      year.className = "year";
+      year.textContent = a.yr;
+      meta.appendChild(year);
+    }
     box.append(h, meta);
 
     if (a.s === "on_hold") {
@@ -283,6 +289,7 @@
     spinning = true;
     $("redo").disabled = true;
     $("spin").disabled = true;
+    if (current) { setResultMessage("Girando…"); $("started").hidden = true; }
     $("spin").textContent = "Girando…";
 
     const finish = () => {
