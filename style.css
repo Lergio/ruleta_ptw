@@ -62,15 +62,15 @@ input[type="text"]::placeholder{color:var(--muted);opacity:.8}
 }
 .result .placeholder{margin:0;color:var(--muted)}
 
-.result-wrap{display:flex;gap:16px;align-items:stretch}
+.result-wrap{display:flex;gap:16px;align-items:flex-start}
 .result-cover{
-  flex:none;width:150px;object-fit:cover;border-radius:14px;
+  flex:none;width:150px;aspect-ratio:2/3;object-fit:cover;border-radius:14px;
   border:2px solid var(--line);background:var(--surface);
 }
 .result{flex:1;min-width:0}
 @media (max-width:520px){
-  .result-wrap{flex-direction:column}
-  .result-cover{width:100%;height:200px}
+  .result-wrap{flex-direction:column;align-items:center}
+  .result-cover{width:130px}
 }
 .result h2{
   font-family:var(--font-display);font-weight:400;margin:0;
