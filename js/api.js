@@ -2,18 +2,25 @@
 
 /**
  * Cliente mínimo de la API v2 de MyAnimeList.
- * Endpoint usado: GET /users/{user_name}/animelist
- * https://myanimelist.net/apiconfig/references/api/v2#operation/users_user_id_animelist_get
+ * Endpoints usados:
+ *   GET /users/{user_name}/animelist
+ *   https://myanimelist.net/apiconfig/references/api/v2#operation/users_user_id_animelist_get
+ *   GET /anime/{anime_id} (solo para el campo related_anime del resultado sorteado,
+ *   que no se puede pedir en el endpoint de la lista)
  *
  * Expone un único global: MalApi
- *   MalApi.configure({ clientId, baseUrl, pageSize })
+ *   MalApi.configure({ baseUrl, pageSize })
  *   MalApi.fetchWatchlist(username) -> Promise<Anime[]>
+ *   MalApi.fetchRelatedAnime(id) -> Promise<RelatedAnime[]>
  *
  * Anime = { id, t (título), y (tipo), e (episodios totales, 0 = sin dato),
  *           w (episodios vistos), s ("plan_to_watch" | "on_hold"),
  *           yr (año de estreno, número o null si no está disponible),
+ *           img (URL de la portada en tamaño mediano, o null si no hay),
  *           u (boolean: true si todavía no se emitió / no tiene fecha de estreno
  *              confirmada en el pasado — cuenta para el total pero no entra al sorteo) }
+ *
+ * RelatedAnime = { id, t (título), rel (relation_type en inglés), relLabel (en español) }
  */
 const MalApi = (() => {
   const CONFIG = {
@@ -21,7 +28,7 @@ const MalApi = (() => {
     // así que BASE_URL apunta a tu proxy (ver proxy-cloudflare/worker.js),
     // que reenvía a https://api.myanimelist.net/v2 agregando el Client ID.
     // Reemplazá esto por la URL que te dio Cloudflare al desplegar el worker.
-    BASE_URL: "https://mal-proxy.chiito53452.workers.dev/",
+    BASE_URL: "https://mal-proxy.TU-USUARIO.workers.dev",
     // Máximo permitido por la API para este endpoint: 1000
     PAGE_SIZE: 1000,
   };
@@ -38,6 +45,23 @@ const MalApi = (() => {
     tv_special: "TV Special",
     music: "Music",
     unknown: "Unknown",
+  };
+
+  // Traducción de relation_type (documentados por MAL, más algunos extra que
+  // devuelve la API en la práctica aunque no figuren en la referencia).
+  const RELATION_LABELS = {
+    sequel: "Secuela",
+    prequel: "Precuela",
+    alternative_setting: "Ambientación alternativa",
+    alternative_version: "Versión alternativa",
+    side_story: "Historia secundaria",
+    parent_story: "Historia principal",
+    summary: "Resumen",
+    full_story: "Historia completa",
+    spin_off: "Spin-off",
+    adaptation: "Adaptación",
+    character: "Comparte personajes",
+    other: "Relacionado",
   };
 
   class MalError extends Error {
@@ -91,7 +115,7 @@ const MalApi = (() => {
         status,
         limit: CONFIG.PAGE_SIZE,
         offset,
-        fields: "list_status,media_type,num_episodes,start_date,status",
+        fields: "list_status,media_type,num_episodes,start_date,status,main_picture",
         nsfw: "true",
       });
       const data = Array.isArray(page.data) ? page.data : [];
@@ -110,6 +134,7 @@ const MalApi = (() => {
     // Si por algún motivo no viene ese campo, usamos start_date como respaldo: sin fecha = todavía no emitido.
     const upcoming = node.status ? node.status === "not_yet_aired" : !node.start_date;
     const yearMatch = typeof node.start_date === "string" && node.start_date.match(/^\d{4}/);
+    const pic = node.main_picture || {};
     return {
       id: node.id,
       t: node.title || "(sin título)",
@@ -118,6 +143,7 @@ const MalApi = (() => {
       w: ls.num_episodes_watched || 0,
       s: ls.status,
       yr: yearMatch ? Number(yearMatch[0]) : null,
+      img: pic.medium || pic.large || null,
       u: upcoming,
     };
   }
@@ -133,5 +159,19 @@ const MalApi = (() => {
     return [...byId.values()].sort((x, y) => x.t.localeCompare(y.t));
   }
 
-  return { configure, fetchWatchlist, MalError };
+  /** Animes relacionados (secuela, precuela, etc.) de un anime puntual. */
+  async function fetchRelatedAnime(id) {
+    const data = await request(`/anime/${encodeURIComponent(id)}`, { fields: "related_anime" });
+    const rel = Array.isArray(data.related_anime) ? data.related_anime : [];
+    return rel
+      .filter((r) => r.node && r.node.id != null)
+      .map((r) => ({
+        id: r.node.id,
+        t: r.node.title || "(sin título)",
+        rel: r.relation_type,
+        relLabel: RELATION_LABELS[r.relation_type] || r.relation_type_formatted || r.relation_type || "Relacionado",
+      }));
+  }
+
+  return { configure, fetchWatchlist, fetchRelatedAnime, MalError };
 })();
