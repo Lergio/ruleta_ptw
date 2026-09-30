@@ -18,17 +18,25 @@
  *  6. Copiá la URL que te da Cloudflare, algo como:
  *     https://mal-proxy.TU-USUARIO.workers.dev
  *  7. En js/api.js de tu app, poné esa URL en BASE_URL (ver comentario ahí).
- *     El CLIENT_ID de api.js ya no hace falta, porque ahora vive en el
- *     worker; podés dejarlo vacío o con cualquier valor no usado.
  *
- * Opcional pero recomendado: en "Settings" -> "Triggers" restringí qué
- * dominios pueden llamar a este worker cambiando ALLOWED_ORIGIN abajo
- * por tu dominio de GitHub Pages (ej: "https://lergio.github.io"), en vez
- * de "*". Así nadie más puede usar tu Client ID a través de tu proxy.
+ * Seguridad: además de las cabeceras CORS (que solo respeta el navegador),
+ * este worker valida del lado del servidor que:
+ *  - el pedido venga con el header Origin igual a ALLOWED_ORIGIN (bloquea
+ *    llamadas directas con curl/scripts que no manden ese header),
+ *  - el método sea GET,
+ *  - la ruta sea /users/{usuario}/animelist o /anime/{id} (esta última se
+ *    usa para traer los animes relacionados del resultado sorteado),
+ *  - en /animelist, el parámetro "status" sea plan_to_watch u on_hold.
+ * Nada de esto es infalible (un atacante decidido puede falsear el header
+ * Origin), pero frena el abuso casual de tu Client ID y tu cuota de la API
+ * sin agregar pasos de instalación.
  */
 
-const ALLOWED_ORIGIN = "https://lergio.github.io"; // reemplazá por "https://lergio.github.io" para restringir
+const ALLOWED_ORIGIN = "https://lergio.github.io"; // el origen nunca incluye el path (ej: /ruleta_ptw/)
 const UPSTREAM = "https://api.myanimelist.net/v2";
+const LIST_PATH_RE = /^\/users\/[^/]+\/animelist$/;
+const DETAILS_PATH_RE = /^\/anime\/\d+$/;
+const ALLOWED_STATUS = new Set(["plan_to_watch", "on_hold"]);
 
 function corsHeaders() {
   return {
@@ -39,21 +47,44 @@ function corsHeaders() {
   };
 }
 
+function jsonError(status, error, message) {
+  return new Response(JSON.stringify({ error, message }), {
+    status,
+    headers: { "Content-Type": "application/json", ...corsHeaders() },
+  });
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders() });
     }
+    if (request.method !== "GET") {
+      return jsonError(405, "method_not_allowed", "Este proxy solo acepta GET.");
+    }
 
-    if (!env.MAL_CLIENT_ID) {
-      return new Response(
-        JSON.stringify({ error: "server_config", message: "Falta la variable MAL_CLIENT_ID en el worker." }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders() } }
-      );
+    const origin = request.headers.get("Origin");
+    if (ALLOWED_ORIGIN !== "*" && origin !== ALLOWED_ORIGIN) {
+      return jsonError(403, "forbidden_origin", "Origen no permitido.");
     }
 
     const url = new URL(request.url);
-    // Todo lo que llega después de la raíz del worker se reenvía tal cual a la API de MAL.
+    const isList = LIST_PATH_RE.test(url.pathname);
+    const isDetails = DETAILS_PATH_RE.test(url.pathname);
+    if (!isList && !isDetails) {
+      return jsonError(404, "not_found", "Ruta no permitida en este proxy.");
+    }
+    if (isList) {
+      const status = url.searchParams.get("status");
+      if (status && !ALLOWED_STATUS.has(status)) {
+        return jsonError(400, "bad_status", "El parámetro status debe ser plan_to_watch u on_hold.");
+      }
+    }
+
+    if (!env.MAL_CLIENT_ID) {
+      return jsonError(500, "server_config", "Falta la variable MAL_CLIENT_ID en el worker.");
+    }
+
     const upstreamUrl = UPSTREAM + url.pathname + url.search;
 
     let upstreamRes;
@@ -62,10 +93,7 @@ export default {
         headers: { "X-MAL-CLIENT-ID": env.MAL_CLIENT_ID },
       });
     } catch (err) {
-      return new Response(
-        JSON.stringify({ error: "upstream_unreachable", message: String(err) }),
-        { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders() } }
-      );
+      return jsonError(502, "upstream_unreachable", String(err));
     }
 
     const body = await upstreamRes.text();
