@@ -28,7 +28,7 @@ const MalApi = (() => {
     // así que BASE_URL apunta a tu proxy (ver proxy-cloudflare/worker.js),
     // que reenvía a https://api.myanimelist.net/v2 agregando el Client ID.
     // Reemplazá esto por la URL que te dio Cloudflare al desplegar el worker.
-    BASE_URL: "https://mal-proxy.TU-USUARIO.workers.dev",
+    BASE_URL: "https://mal-proxy.chiito53452.workers.dev/",
     // Máximo permitido por la API para este endpoint: 1000
     PAGE_SIZE: 1000,
   };
