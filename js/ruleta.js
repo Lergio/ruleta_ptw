@@ -124,10 +124,23 @@
   }
 
   /* ---------- interfaz ---------- */
+  function setCover(url) {
+    const img = $("resultImg");
+    if (url) {
+      img.onerror = () => { img.hidden = true; };
+      img.src = url;
+      img.hidden = false;
+    } else {
+      img.hidden = true;
+      img.removeAttribute("src");
+    }
+  }
+
   function setResultMessage(text) {
     const box = $("result");
     box.classList.remove("pop");
     box.textContent = "";
+    setCover(null);
     const p = document.createElement("p");
     p.className = "placeholder";
     p.textContent = text;
@@ -201,22 +214,7 @@
     const box = $("result");
     box.textContent = "";
     box.classList.remove("pop"); void box.offsetWidth; box.classList.add("pop");
-
-    const row = document.createElement("div");
-    row.className = "result-row";
-
-    if (a.img) {
-      const img = document.createElement("img");
-      img.className = "result-img";
-      img.src = a.img;
-      img.alt = "";
-      img.loading = "lazy";
-      img.onerror = () => img.remove();
-      row.appendChild(img);
-    }
-
-    const content = document.createElement("div");
-    content.className = "result-content";
+    setCover(a.img);
 
     const h = document.createElement("h2");
     h.textContent = a.t;
@@ -235,7 +233,7 @@
       year.textContent = a.yr;
       meta.appendChild(year);
     }
-    content.append(h, meta);
+    box.append(h, meta);
 
     if (a.s === "on_hold") {
       const hold = document.createElement("p");
@@ -247,7 +245,7 @@
       } else {
         hold.textContent = "En espera: no tenés episodios vistos registrados.";
       }
-      content.appendChild(hold);
+      box.appendChild(hold);
     }
 
     const link = document.createElement("a");
@@ -255,15 +253,12 @@
     link.href = `https://myanimelist.net/anime/${encodeURIComponent(a.id)}`;
     link.target = "_blank"; link.rel = "noopener noreferrer";
     link.textContent = "Ver en MyAnimeList";
-    content.appendChild(link);
+    box.appendChild(link);
 
     const related = document.createElement("div");
     related.className = "related";
-    content.appendChild(related);
+    box.appendChild(related);
     loadRelated(a, related);
-
-    row.appendChild(content);
-    box.appendChild(row);
 
     updateStartedBtn();
   }
