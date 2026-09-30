@@ -61,6 +61,13 @@ input[type="text"]::placeholder{color:var(--muted);opacity:.8}
   padding:22px 22px 20px;min-height:190px;display:flex;flex-direction:column;justify-content:center;gap:14px;
 }
 .result .placeholder{margin:0;color:var(--muted)}
+.result-row{display:flex;gap:16px;align-items:flex-start}
+.result-img{
+  flex:none;width:92px;height:130px;object-fit:cover;border-radius:10px;
+  border:2px solid var(--line);background:var(--bg);
+}
+.result-content{min-width:0;flex:1;display:flex;flex-direction:column;gap:14px}
+@media (max-width:380px){.result-img{width:72px;height:102px}}
 .result h2{
   font-family:var(--font-display);font-weight:400;margin:0;
   font-size:clamp(1.4rem,3.4vw,2.1rem);line-height:1.2;overflow-wrap:anywhere;
@@ -76,6 +83,12 @@ input[type="text"]::placeholder{color:var(--muted);opacity:.8}
 .hold{margin:0;padding:10px 12px;border-left:4px solid var(--accent);background:var(--bg);border-radius:0 8px 8px 0}
 .mal-link{color:var(--muted);font-size:.93rem}
 .mal-link:hover{color:var(--ink)}
+.related h3{margin:0 0 6px;font-size:.9rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.02em}
+.related ul{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.related li{font-size:.93rem;overflow-wrap:anywhere}
+.related .rel-label{color:var(--muted)}
+.related a{color:var(--ink)}
+.related a:hover{color:var(--accent)}
 .result.pop h2,.result.pop .meta{animation:reveal .35s ease-out both}
 @keyframes reveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
