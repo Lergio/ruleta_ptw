@@ -202,6 +202,22 @@
     box.textContent = "";
     box.classList.remove("pop"); void box.offsetWidth; box.classList.add("pop");
 
+    const row = document.createElement("div");
+    row.className = "result-row";
+
+    if (a.img) {
+      const img = document.createElement("img");
+      img.className = "result-img";
+      img.src = a.img;
+      img.alt = "";
+      img.loading = "lazy";
+      img.onerror = () => img.remove();
+      row.appendChild(img);
+    }
+
+    const content = document.createElement("div");
+    content.className = "result-content";
+
     const h = document.createElement("h2");
     h.textContent = a.t;
 
@@ -219,7 +235,7 @@
       year.textContent = a.yr;
       meta.appendChild(year);
     }
-    box.append(h, meta);
+    content.append(h, meta);
 
     if (a.s === "on_hold") {
       const hold = document.createElement("p");
@@ -231,7 +247,7 @@
       } else {
         hold.textContent = "En espera: no tenés episodios vistos registrados.";
       }
-      box.appendChild(hold);
+      content.appendChild(hold);
     }
 
     const link = document.createElement("a");
@@ -239,9 +255,52 @@
     link.href = `https://myanimelist.net/anime/${encodeURIComponent(a.id)}`;
     link.target = "_blank"; link.rel = "noopener noreferrer";
     link.textContent = "Ver en MyAnimeList";
-    box.appendChild(link);
+    content.appendChild(link);
+
+    const related = document.createElement("div");
+    related.className = "related";
+    content.appendChild(related);
+    loadRelated(a, related);
+
+    row.appendChild(content);
+    box.appendChild(row);
 
     updateStartedBtn();
+  }
+
+  const relatedCache = new Map();
+  function loadRelated(a, container) {
+    let p = relatedCache.get(a.id);
+    if (!p) {
+      p = MalApi.fetchRelatedAnime(a.id).catch(() => []);
+      relatedCache.set(a.id, p);
+    }
+    p.then((list) => {
+      // Si mientras cargaba ya se sorteó/limpió otro resultado, no lo mostramos.
+      if (current !== a || !document.body.contains(container)) return;
+      renderRelated(list, container);
+    });
+  }
+
+  function renderRelated(list, container) {
+    container.textContent = "";
+    if (!list.length) return;
+    const h3 = document.createElement("h3");
+    h3.textContent = "Relacionados";
+    const ul = document.createElement("ul");
+    list.forEach((r) => {
+      const li = document.createElement("li");
+      const label = document.createElement("span");
+      label.className = "rel-label";
+      label.textContent = r.relLabel + ": ";
+      const a = document.createElement("a");
+      a.href = `https://myanimelist.net/anime/${encodeURIComponent(r.id)}`;
+      a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = r.t;
+      li.append(label, a);
+      ul.appendChild(li);
+    });
+    container.append(h3, ul);
   }
 
   function updateStartedBtn() {
