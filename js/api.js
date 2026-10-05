@@ -28,7 +28,7 @@ const MalApi = (() => {
     // así que BASE_URL apunta a tu proxy (ver proxy-cloudflare/worker.js),
     // que reenvía a https://api.myanimelist.net/v2 agregando el Client ID.
     // Reemplazá esto por la URL que te dio Cloudflare al desplegar el worker.
-    BASE_URL: "https://mal-proxy.chiito53452.workers.dev/",
+    BASE_URL: "https://mal-proxy.chiito53452.workers.dev",
     // Máximo permitido por la API para este endpoint: 1000
     PAGE_SIZE: 1000,
   };
@@ -159,12 +159,16 @@ const MalApi = (() => {
     return [...byId.values()].sort((x, y) => x.t.localeCompare(y.t));
   }
 
-  /** Animes relacionados (secuela, precuela, etc.) de un anime puntual. */
+  // Para no hacer demasiado largo el resultado, de todos los relation_type que
+  // existen (ver RELATION_LABELS) solo nos interesan precuela y secuela.
+  const RELATED_KINDS = new Set(["prequel", "sequel"]);
+
+  /** Precuela y secuela (si existen) de un anime puntual. */
   async function fetchRelatedAnime(id) {
     const data = await request(`/anime/${encodeURIComponent(id)}`, { fields: "related_anime" });
     const rel = Array.isArray(data.related_anime) ? data.related_anime : [];
     return rel
-      .filter((r) => r.node && r.node.id != null)
+      .filter((r) => r.node && r.node.id != null && RELATED_KINDS.has(r.relation_type))
       .map((r) => ({
         id: r.node.id,
         t: r.node.title || "(sin título)",
@@ -174,4 +178,51 @@ const MalApi = (() => {
   }
 
   return { configure, fetchWatchlist, fetchRelatedAnime, MalError };
+})();
+
+/**
+ * Cliente mínimo de la API de Jikan (https://api.jikan.moe/v4), no oficial,
+ * basada en datos de MyAnimeList. A diferencia de la API oficial, Jikan sí
+ * permite llamadas directas desde el navegador (tiene CORS habilitado), así
+ * que esta no pasa por ningún proxy.
+ * Se usa solo para dónde ver en streaming el anime sorteado:
+ *   GET /anime/{id}/streaming
+ *   https://docs.api.jikan.moe/#tag/anime/operation/getAnimeStreaming
+ *
+ * Expone un único global: JikanApi
+ *   JikanApi.fetchStreaming(id) -> Promise<Streaming[]>
+ *
+ * Streaming = { name (nombre de la plataforma), url }
+ */
+const JikanApi = (() => {
+  const BASE_URL = "https://api.jikan.moe/v4";
+
+  class JikanError extends Error {
+    /** kind: network | badrequest | http */
+    constructor(kind, message, status) {
+      super(message);
+      this.name = "JikanError";
+      this.kind = kind;
+      this.status = status;
+    }
+  }
+
+  async function fetchStreaming(id) {
+    let res;
+    try {
+      res = await fetch(`${BASE_URL}/anime/${encodeURIComponent(id)}/streaming`);
+    } catch (err) {
+      throw new JikanError("network", "No se pudo conectar con Jikan.");
+    }
+    if (res.status === 400) throw new JikanError("badrequest", "Pedido inválido a Jikan.", 400);
+    if (!res.ok) throw new JikanError("http", `Jikan respondió con error ${res.status}.`, res.status);
+
+    const data = await res.json();
+    const list = Array.isArray(data.data) ? data.data : [];
+    return list
+      .filter((s) => s && s.url && s.name)
+      .map((s) => ({ name: s.name, url: s.url }));
+  }
+
+  return { fetchStreaming, JikanError };
 })();
