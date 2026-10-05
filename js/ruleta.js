@@ -218,6 +218,14 @@
 
     const h = document.createElement("h2");
     h.textContent = a.t;
+    box.appendChild(h);
+
+    if (a.genres.length) {
+      const genres = document.createElement("p");
+      genres.className = "genres";
+      genres.textContent = a.genres.join(", ");
+      box.appendChild(genres);
+    }
 
     const meta = document.createElement("div");
     meta.className = "meta";
@@ -227,13 +235,19 @@
     eps.className = "eps";
     eps.textContent = a.e > 0 ? `${a.e} ${a.e === 1 ? "episodio" : "episodios"}` : "Episodios sin definir";
     meta.append(badge, eps);
+    if (a.durMin) {
+      const dur = document.createElement("span");
+      dur.className = "dur";
+      dur.textContent = `${a.durMin} min/cap`;
+      meta.appendChild(dur);
+    }
     if (a.yr) {
       const year = document.createElement("span");
       year.className = "year";
       year.textContent = a.yr;
       meta.appendChild(year);
     }
-    box.append(h, meta);
+    box.appendChild(meta);
 
     if (a.s === "on_hold") {
       const hold = document.createElement("p");
@@ -255,66 +269,12 @@
     link.textContent = "Ver en MyAnimeList";
     box.appendChild(link);
 
-    const streaming = document.createElement("div");
-    streaming.className = "streaming";
-    box.appendChild(streaming);
-    loadStreaming(a, streaming);
-
     const related = document.createElement("div");
     related.className = "related";
     box.appendChild(related);
     loadRelated(a, related);
 
     updateStartedBtn();
-  }
-
-  function faviconFor(pageUrl) {
-    try {
-      const host = new URL(pageUrl).hostname;
-      return `https://www.google.com/s2/favicons?sz=32&domain=${encodeURIComponent(host)}`;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  const streamingCache = new Map();
-  function loadStreaming(a, container) {
-    let p = streamingCache.get(a.id);
-    if (!p) {
-      p = JikanApi.fetchStreaming(a.id).catch(() => []);
-      streamingCache.set(a.id, p);
-    }
-    p.then((list) => {
-      if (current !== a || !document.body.contains(container)) return;
-      renderStreaming(list, container);
-    });
-  }
-
-  function renderStreaming(list, container) {
-    container.textContent = "";
-    if (!list.length) return;
-    const h3 = document.createElement("h3");
-    h3.textContent = "Disponible en";
-    const wrap = document.createElement("div");
-    wrap.className = "streaming-list";
-    list.forEach((s) => {
-      const link = document.createElement("a");
-      link.className = "streaming-link";
-      link.href = s.url; link.target = "_blank"; link.rel = "noopener noreferrer";
-      const iconUrl = faviconFor(s.url);
-      if (iconUrl) {
-        const icon = document.createElement("img");
-        icon.className = "streaming-icon";
-        icon.src = iconUrl; icon.alt = ""; icon.loading = "lazy";
-        icon.onerror = () => icon.remove();
-        link.appendChild(icon);
-      }
-      const label = document.createElement("span");
-      label.textContent = `Ver en ${s.name}`;
-      link.appendChild(label);
-      wrap.appendChild(link);
-    });
-    container.append(h3, wrap);
   }
 
   const relatedCache = new Map();
