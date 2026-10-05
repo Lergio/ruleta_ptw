@@ -17,6 +17,8 @@
  *           w (episodios vistos), s ("plan_to_watch" | "on_hold"),
  *           yr (año de estreno, número o null si no está disponible),
  *           img (URL de la portada en tamaño mediano, o null si no hay),
+ *           genres (array de strings, puede estar vacío),
+ *           durMin (duración por episodio en minutos, o null si no está disponible),
  *           u (boolean: true si todavía no se emitió / no tiene fecha de estreno
  *              confirmada en el pasado — cuenta para el total pero no entra al sorteo) }
  *
@@ -115,7 +117,7 @@ const MalApi = (() => {
         status,
         limit: CONFIG.PAGE_SIZE,
         offset,
-        fields: "list_status,media_type,num_episodes,start_date,status,main_picture",
+        fields: "list_status,media_type,num_episodes,start_date,status,main_picture,genres,average_episode_duration",
         nsfw: "true",
       });
       const data = Array.isArray(page.data) ? page.data : [];
@@ -135,6 +137,8 @@ const MalApi = (() => {
     const upcoming = node.status ? node.status === "not_yet_aired" : !node.start_date;
     const yearMatch = typeof node.start_date === "string" && node.start_date.match(/^\d{4}/);
     const pic = node.main_picture || {};
+    const genres = Array.isArray(node.genres) ? node.genres.map((g) => g && g.name).filter(Boolean) : [];
+    const durSec = node.average_episode_duration || 0;
     return {
       id: node.id,
       t: node.title || "(sin título)",
@@ -144,6 +148,8 @@ const MalApi = (() => {
       s: ls.status,
       yr: yearMatch ? Number(yearMatch[0]) : null,
       img: pic.medium || pic.large || null,
+      genres,
+      durMin: durSec > 0 ? Math.round(durSec / 60) : null,
       u: upcoming,
     };
   }
@@ -178,51 +184,4 @@ const MalApi = (() => {
   }
 
   return { configure, fetchWatchlist, fetchRelatedAnime, MalError };
-})();
-
-/**
- * Cliente mínimo de la API de Jikan (https://api.jikan.moe/v4), no oficial,
- * basada en datos de MyAnimeList. A diferencia de la API oficial, Jikan sí
- * permite llamadas directas desde el navegador (tiene CORS habilitado), así
- * que esta no pasa por ningún proxy.
- * Se usa solo para dónde ver en streaming el anime sorteado:
- *   GET /anime/{id}/streaming
- *   https://docs.api.jikan.moe/#tag/anime/operation/getAnimeStreaming
- *
- * Expone un único global: JikanApi
- *   JikanApi.fetchStreaming(id) -> Promise<Streaming[]>
- *
- * Streaming = { name (nombre de la plataforma), url }
- */
-const JikanApi = (() => {
-  const BASE_URL = "https://api.jikan.moe/v4";
-
-  class JikanError extends Error {
-    /** kind: network | badrequest | http */
-    constructor(kind, message, status) {
-      super(message);
-      this.name = "JikanError";
-      this.kind = kind;
-      this.status = status;
-    }
-  }
-
-  async function fetchStreaming(id) {
-    let res;
-    try {
-      res = await fetch(`${BASE_URL}/anime/${encodeURIComponent(id)}/streaming`);
-    } catch (err) {
-      throw new JikanError("network", "No se pudo conectar con Jikan.");
-    }
-    if (res.status === 400) throw new JikanError("badrequest", "Pedido inválido a Jikan.", 400);
-    if (!res.ok) throw new JikanError("http", `Jikan respondió con error ${res.status}.`, res.status);
-
-    const data = await res.json();
-    const list = Array.isArray(data.data) ? data.data : [];
-    return list
-      .filter((s) => s && s.url && s.name)
-      .map((s) => ({ name: s.name, url: s.url }));
-  }
-
-  return { fetchStreaming, JikanError };
 })();
